@@ -22,7 +22,7 @@ class State:
         self._battery_charging_state = -1
         self._battery_time = -1
         self._battery_capacity = -1
-        self._wattage = -1  # Information unavailable; required in schema
+        self._battery_wattage = -1
 
         self._brightness_change_func = None
         self._screen_blanked_func = None
@@ -54,7 +54,7 @@ class State:
 
     def emit_battery_state_change(self):
         if callable(self._battery_state_change_func):
-            self._battery_state_change_func(int(self._battery_charging_state), int(self._battery_capacity), int(self._battery_time), self.watt)
+            self._battery_state_change_func(int(self._battery_charging_state), int(self._battery_capacity), int(self._battery_time), int(self._battery_wattage))
 
     def emit_brightness_change(self):
         if callable(self._brightness_change_func):
@@ -93,6 +93,11 @@ class State:
     def set_battery_time(self, val):
         if self._battery_time != val:
             self._battery_time = val
+            self.emit_battery_state_change()
+
+    def set_battery_wattage(self, val):
+        if self._battery_wattage != val:
+            self._battery_wattage = val
             self.emit_battery_state_change()
 
     def set_brightness(self, val, emit=True):
@@ -209,6 +214,10 @@ def get_brightness():
     return _state._brightness
 
 
+def get_lid_open_state():
+    return not _state._lid_closed
+
+
 def get_screen_blanked_state():
     return _state._screen_blanked
 
@@ -222,7 +231,7 @@ def get_device_id():
 
 
 def get_battery_state():
-    return _state._battery_charging_state, _state._battery_capacity, _state._battery_time, _state._wattage
+    return _state._battery_charging_state, _state._battery_capacity, _state._battery_time, _state._battery_wattage
 
 
 def shutdown():

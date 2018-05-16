@@ -3,7 +3,6 @@ from ptcommon.counter import Counter
 from smbus import SMBus
 from threading import Thread
 from time import sleep
-from numpy import int16
 import traceback
 
 _battery_state_handler = None
@@ -15,7 +14,8 @@ _cycle_sleep_time = 1
 
 
 class BatteryRegisters():
-    charging_state = 0x0a
+    current = 0x0a
+    voltage = 0x09
     capacity = 0x0d
     charge_time = 0x13
     discharge_time = 0x12
@@ -25,6 +25,8 @@ class BatteryDataType():
     charging_state = 'charging_state'
     capacity = 'capacity'
     time = 'time'
+    current = 'current'
+    voltage = 'voltage'
 
 
 class BatteryStateHandler:
@@ -38,14 +40,32 @@ class BatteryStateHandler:
 
         self._connected = self._setup_i2c()
 
-    def set_charging_state(self, state):
-        self._state.set_battery_charging_state(state)
+    def set_charging_state(self, charging_state):
+        PTLogger.debug("Setting battery charging state as " + str(charging_state))
+        self._state.set_battery_charging_state(charging_state)
 
     def set_capacity(self, capacity):
+        PTLogger.debug("Setting battery capacity as " + str(capacity))
         self._state.set_battery_capacity(capacity)
 
     def set_time(self, time):
+        PTLogger.debug("Setting battery time as " + str(time))
         self._state.set_battery_time(time)
+
+    def set_current(self, current):
+        PTLogger.debug("Setting battery current as " + str(current))
+        self._current = current
+
+    def set_voltage(self, voltage):
+        PTLogger.debug("Setting battery voltage as " + str(voltage))
+        self._voltage = voltage
+
+    def set_wattage_from_current_and_voltage(self):
+        current_amps = self._current / 1000
+        voltage_volts = self._voltage / 1000
+        wattage_deciwatts = int(round((current_amps * voltage_volts) * 10))
+        PTLogger.debug("Setting battery wattage as " + str(wattage_deciwatts) + "dW")
+        self._state.set_battery_wattage(wattage_deciwatts)
 
     def is_connected(self):
         return self._connected
@@ -66,111 +86,119 @@ class BatteryStateHandler:
 
         PTLogger.debug("Refreshing battery state...")
 
-        if not self._get_battery_data(BatteryDataType.charging_state):
-            PTLogger.debug("Unable to get battery charging state")
+        # Current goes first - used to determine which time to get
+        PTLogger.debug("Getting battery current...")
+        if not self._get_battery_data(BatteryDataType.current):
+            PTLogger.debug("Unable to get battery current")
             return False
 
+        PTLogger.debug("Getting battery capacity...")
         if not self._get_battery_data(BatteryDataType.capacity):
             PTLogger.debug("Unable to get battery capacity")
             return False
 
+        PTLogger.debug("Getting battery time...")
         if not self._get_battery_data(BatteryDataType.time):
             PTLogger.debug("Unable to get battery time")
             return False
+
+        PTLogger.debug("Getting battery voltage...")
+        if not self._get_battery_data(BatteryDataType.voltage):
+            PTLogger.debug("Unable to get battery voltage")
+            return False
+
+        PTLogger.debug("Wattage set from battery voltage and current")
+        self.set_wattage_from_current_and_voltage()
 
         return True
 
     def _get_battery_register_to_read(self, data_to_get):
         if data_to_get == BatteryDataType.charging_state:
-            register = BatteryRegisters.charging_state
+            register = BatteryRegisters.current
         elif data_to_get == BatteryDataType.capacity:
             register = BatteryRegisters.capacity
         elif data_to_get == BatteryDataType.time:
             # requires charging state to be correct...
-            if self._state._battery_charging_state == 1:
-                register = BatteryRegisters.charge_time
-            else:
+            if self._state._battery_charging_state == 0:
                 register = BatteryRegisters.discharge_time
+            else:
+                register = BatteryRegisters.charge_time
+        elif data_to_get == BatteryDataType.current:
+            register = BatteryRegisters.current
+        elif data_to_get == BatteryDataType.voltage:
+            register = BatteryRegisters.voltage
         else:
             raise ValueError("Unknown data type to read from battery")
 
         return register
 
-    def _parse_response(self, resp, register, data_to_get):
+    def _parse_response(self, resp, register):
         # Successful read, check that value is valid
-        resp_bin = bin(resp)
-        resp_dec = int16(resp)
-
-        if register == BatteryRegisters.charging_state:
-            return self._process_charging_state_i2c_resp(resp_dec, data_to_get)
+        if register == BatteryRegisters.current:
+            return self._process_current_and_charging_state_i2c_resp(resp)
+        elif register == BatteryRegisters.voltage:
+            return self._process_voltage_i2c_resp(resp)
         elif register == BatteryRegisters.capacity:
-            return self._process_capacity_i2c_resp(resp_dec)
+            return self._process_capacity_i2c_resp(resp)
         elif register == BatteryRegisters.discharge_time:
-            return self._process_discharging_time_i2c_resp(resp_dec)
+            return self._process_discharging_time_i2c_resp(resp)
         elif register == BatteryRegisters.charge_time:
-            return self._process_charging_time_i2c_resp(resp_dec)
+            return self._process_charging_time_i2c_resp(resp)
         else:
             # Unknown register
             return False
 
-    def _process_charging_state_i2c_resp(self, resp_dec, data_to_get):
-        if resp_dec == 0xffff:
-            PTLogger.debug("\tCurrent reading out of range")
-            return False
-
-        # Get signed decimal output of response
-        # Check for valid read
-        # Out of range or FFFF
-
-        if resp_dec < -4000 or resp_dec > 4000:
-            # Not valid
-            PTLogger.debug("Value received not valid - not accepted")
-            return False
-
-        if resp_dec <= -10:
-            self.set_charging_state(0)
-        else:
-            charging_state = 2 if (self._state._battery_time == 0) else 1  # charging state
-            self.set_charging_state(charging_state)
-
-        if data_to_get == BatteryDataType.time:
-            # Determined state, now get correct time value
-            self._i2c_ctr.reset()
-        else:
-            return True
-
-    def _process_capacity_i2c_resp(self, resp_dec):
-        # 100 for capacity
-
-        if resp_dec <= 100 and resp_dec >= 0:
-            # valid
-            self.set_capacity(resp_dec)
+    def _process_capacity_i2c_resp(self, resp):
+        if resp <= 100 and resp >= 0:
+            self.set_capacity(resp)
 
             return True
         else:
             PTLogger.debug("Invalid, not less than or equal to 100")
             return False
 
-    def _process_discharging_time_i2c_resp(self, resp_dec):
-        #   1800 for remaining time
-
-        if resp_dec <= 1800:
-            # valid
-            self.set_time(resp_dec)
+    def _process_discharging_time_i2c_resp(self, resp):
+        if resp <= 1800 and resp >= 0:
+            self.set_time(resp)
             return True
         else:
             PTLogger.debug("Invalid, not less than or equal to 1800")
 
-    def _process_charging_time_i2c_resp(self, resp_dec):
-        #   2400 for charging time
-
-        if resp_dec <= 2400:
-            # valid
-            self.set_time(resp_dec)
+    def _process_charging_time_i2c_resp(self, resp):
+        if resp <= 2400 and resp >= 0:
+            self.set_time(resp)
             return True
         else:
-            PTLogger.debug("Invalid, not less than or equal to 2400")
+            PTLogger.debug("Invalid, not less than or equal to 2400: " + str(resp))
             return False
+
+    def _process_current_and_charging_state_i2c_resp(self, resp):
+        if resp < -2500 or resp > 2500:
+            PTLogger.debug("Invalid current: " + str(resp) + "mA")
+            return False
+
+        if resp <= -10:
+            self.set_charging_state(0)
+        else:
+            charging_state = 2 if (self._state._battery_time == 0) else 1  # charging state
+            self.set_charging_state(charging_state)
+
+        self.set_current(resp)
+
+        return True
+
+    def _process_voltage_i2c_resp(self, resp):
+        if resp <= 20000 and resp >= 0:
+            self.set_voltage(resp)
+            return True
+        else:
+            PTLogger.debug("Invalid voltage: " + str(resp) + "mV")
+            return False
+
+    def twos_comp(self, val, bits=16):
+        if (val & (1 << (bits - 1))) != 0:
+            val = val - (1 << bits)
+        return val
 
     def _attempt_read(self, data_to_get):
         successful_read = False
@@ -178,7 +206,7 @@ class BatteryStateHandler:
         register = None
         try:
             register = self._get_battery_register_to_read(data_to_get)
-            resp = self._bus.read_word_data(self._chip_address, register)
+            resp = self.twos_comp(self._bus.read_word_data(self._chip_address, register))
             successful_read = True
         except:
             pass
@@ -193,13 +221,13 @@ class BatteryStateHandler:
             self._i2c_ctr.increment()
             successful_read, resp, register = self._attempt_read(data_to_get)
             if successful_read:
-                return self._parse_response(resp, register, data_to_get)
-            # else:
+                return self._parse_response(resp, register)
+            else:
                 PTLogger.debug("Unsuccessful read...")
             sleep(reattempt_sleep_s)
 
         # Value was not fetched
-        PTLogger.debug("Unable to read I2C after multiple attempts")
+        PTLogger.debug("Unable to read from I2C after multiple attempts")
         return False
 
 
