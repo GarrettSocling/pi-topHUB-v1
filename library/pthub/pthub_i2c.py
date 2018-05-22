@@ -63,7 +63,7 @@ class BatteryStateHandler:
     def set_wattage_from_current_and_voltage(self):
         current_amps = self._current / 1000
         voltage_volts = self._voltage / 1000
-        wattage_deciwatts = int(round((current_amps * voltage_volts) * 10))
+        wattage_deciwatts = max(0, int(round((current_amps * voltage_volts) * 10)))
         PTLogger.debug("Setting battery wattage as " + str(wattage_deciwatts) + "dW")
         self._state.set_battery_wattage(wattage_deciwatts)
 
