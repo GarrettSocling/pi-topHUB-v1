@@ -61,6 +61,14 @@ Additionally, pi-top v1 (not pi-topCEED) also communicates with the battery:
 
 _Note: GPIO pins are references by their physical number_
 
+#### Extra required configuration
+##### Dependencies
+* python3-pt-common
+  * Common class of Python operations (see [this repository](https://github.com/pi-top/Device-Management))
+* python3-smbus
+  * Used to communicate via I2C with pi-top's battery
+* python3-spidev
+  * Used to communicate with pi-topHUB v1
 
 ## <a name="software"></a> Software
 #### <a name="software-pt-os"></a> pi-topHUB v1 on pi-topOS
