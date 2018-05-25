@@ -34,7 +34,7 @@ sudo apt update
 sudo apt install pt-hub
 ```
 
-Alternatively, if you wish to add support for all pi-top devices:
+Alternatively, if you wish to add support for *all* pi-top devices:
 
 ```
 sudo apt update
@@ -81,6 +81,8 @@ Download the latest version of pi-topOS [here](https://pi-top.com/products/os#do
 Automatic initialisation is performed by the software contained in the package called `pt-device-manager`. This installs a program called `pt-device-manager`, which runs in the background and scans for newly connected devices. If a device is detected (and its supporing library is installed), it will be initialised and enabled automatically.
 
 When the `pt-hub` package is installed, `pt-device-manager` will also be installed as dependency, thus starting the background process. The hub will be initialised and ready to use immediately.
+
+`pt-device-manager` is also responsible for powering off the Raspberry Pi when a pi-top device shuts down. More information on shutdown can be found [here](https://github.com/pi-top/Device-Management/poweroff).
 
 For more information about pt-device-manager, see [this repository](https://github.com/pi-top/Device-Management).
 
