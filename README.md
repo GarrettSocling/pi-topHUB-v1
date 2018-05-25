@@ -14,7 +14,7 @@ https://static.pi-top.com/images/v1-hub-pi-topceed.png "Image of pi-topHUB v1 in
     * [pi-topHUB v1 on Raspbian](#software-raspbian)
     * [How it works - 'under the hood'](#software-how-it-works)
 * [Using pi-topHUB v1](#using)
-	* [Using a custom Python script](#using-script)
+    * [Using a custom Python script](#using-script)
 * [Documentation & Support](#support)
     * [Links](#support-links)
     * [Troubleshooting](#support-troubleshooting)
@@ -100,7 +100,7 @@ Once installed, pi-topHUB v1 can be used in Python3 by importing the `pthub` mod
 
 Note that using the `pthub` Python module requires root access to function. If you are running a script, make sure that you are running it with root access. You can do this with the "sudo" command:
 
-	sudo python3 my_cool_hub_script.py
+    sudo python3 my_cool_hub_script.py
 
 Alternatively, if you are running Python in `IDLE`, please make sure you start LXTerminal and run idle or idle3 with the "sudo" command, like so:
 
@@ -116,11 +116,21 @@ Alternatively, if you are running Python in `IDLE`, please make sure you start L
 
 There are a few possible reasons why it may not be working. If you are on pi-topOS, please run:
 
-	pt-diagnostics
+    pt-diagnostics
 
 in the terminal on pi-topOS, and send the logs to pi-top support. This will ensure that we can provide you with the best information to help fix the issue.
 
 If you get `No such file or directory`, run the following:
 
-	sudo apt install pt-diagnostics
-	pt-diagnostics
+    sudo apt install pt-diagnostics
+    pt-diagnostics
+
+#### Why is my pi-top v1 reporting itself to be a pi-topCEED?
+
+`pt-device-manager` uses the presence of the battery to identify a pi-top v1.
+If this is not possible, then it will assume that it is now connected to a pi-topCEED.
+The battery is detected by scanning for its I2C address (0x0b). You can see if the Raspberry Pi can 'see' the device by scanning for I2C addresses:
+
+    sudo i2cdetect -y 1
+
+If you cannot see `0b` in the list, then there is likely a hardware fault. This might be a problem with the Raspberry Pi or the hub. Please follow the instructions under `Why is my pi-topHUB v1 not working?` for assistance with this.
