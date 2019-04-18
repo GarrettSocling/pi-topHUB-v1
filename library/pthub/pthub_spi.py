@@ -234,7 +234,7 @@ class SPIHandler:
             # Increment shutdown counter
             self._shutdown_ctr.increment()
 
-            PTLogger.info("Received shutdown indication from hub (" + str(self._shutdown_ctr._current) + " of " + str(self._shutdown_ctr._max) + ")")
+            PTLogger.info("Received shutdown indication from hub (" + str(self._shutdown_ctr.current) + " of " + str(self._shutdown_ctr.max) + ")")
 
             if self._shutdown_ctr.maxed():
                 self._shutdown_ctr.reset()
@@ -341,7 +341,7 @@ class SPIHandler:
                 do_extra_read = False
 
             if not valid:
-                get_state_ctr._current += 1
+                get_state_ctr.current += 1
                 sleep(_cycle_sleep_time)
 
         if valid:

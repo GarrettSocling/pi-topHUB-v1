@@ -214,7 +214,7 @@ class BatteryStateHandler:
         return successful_read, resp, register
 
     def _get_battery_data(self, data_to_get):
-        reattempt_sleep_s = float(_cycle_sleep_time / self._i2c_ctr._max)
+        reattempt_sleep_s = float(_cycle_sleep_time / self._i2c_ctr.max)
 
         self._i2c_ctr.reset()
         while not self._i2c_ctr.maxed():
