@@ -158,8 +158,7 @@ def initialise():
         _state.set_device_id(DeviceID.pi_top)
         return True
 
-    PTLogger.info("Unable to detect pi-topHUB's battery. Assuming this is a pi-topCEED")
-    _state.set_device_id(DeviceID.pi_top_ceed)
+    PTLogger.info("Unable to detect pi-topHUB's battery. If host is a CEED this will be established after initial communication")
     return True
 
 
