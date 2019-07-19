@@ -142,23 +142,24 @@ def initialise():
 
     _state = State()
 
+    PTLogger.info("Initialising I2C...")
+    pthub_i2c.initialise(_state)
+
     PTLogger.info("Initialising SPI...")
     pthub_spi.initialise(_state)
 
     if pthub_spi.is_initialised() is False:
-        PTLogger.error("Unable to detect pi-topHUB")
+        PTLogger.error("Unable to detect pi-topHUB via SPI")
         _state.set_device_id(DeviceID.unknown)
         return False
-
-    PTLogger.info("Initialising I2C...")
-    pthub_i2c.initialise(_state)
 
     if pthub_i2c.is_initialised():
         PTLogger.info("Detected pi-top battery. This is a pi-top")
         _state.set_device_id(DeviceID.pi_top)
-        return True
 
-    PTLogger.info("Unable to detect pi-topHUB's battery. If host is a CEED this will be established after initial communication")
+    else:
+        PTLogger.info("Unable to detect pi-topHUB's battery. If host is a CEED this will be established after initial communication")
+
     return True
 
 

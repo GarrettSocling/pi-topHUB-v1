@@ -97,15 +97,15 @@ class BatteryStateHandler:
             PTLogger.debug("Unable to get battery capacity")
             return False
 
-        PTLogger.debug("Getting battery time...")
-        if not self._get_battery_data(BatteryDataType.time):
-            PTLogger.debug("Unable to get battery time")
-            return False
-
         PTLogger.debug("Getting battery voltage...")
         if not self._get_battery_data(BatteryDataType.voltage):
             PTLogger.debug("Unable to get battery voltage")
             return False
+
+        PTLogger.debug("Getting battery time...")
+        if not self._get_battery_data(BatteryDataType.time):
+            PTLogger.debug("Unable to get battery time")
+            # return False - Don't return False - non essential
 
         PTLogger.debug("Wattage set from battery voltage and current")
         self.set_wattage_from_current_and_voltage()

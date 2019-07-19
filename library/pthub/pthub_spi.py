@@ -126,7 +126,7 @@ class SPIHandler:
         byte_type = self._determine_byte(hub_response_bstring)
 
         # Determine if received byte represents device ID or state
-        if byte_type == SPIResponseType.device_id and self._state._device_id == DeviceID.unknown:
+        if byte_type == SPIResponseType.device_id:
 
             PTLogger.debug("Valid response from hub - DEVICE ID")
             self._process_device_id(hub_response_bstring)
@@ -253,7 +253,15 @@ class SPIHandler:
         # 6     : Screen blank state, 0 if unblanked, 1 if blanked
         # 7     : Shutdown requested from hub, 1 if shutting down
 
+        # If we're communicating, but we still haven't decided what device
+        # we're on, then we must be on a CEED, as if we were on a pi-top v1,
+        # we would have identified this via connecting to the battery on i2c.
+
+        if self._state._device_id == DeviceID.unknown:
+            self._state.set_device_id(DeviceID.pi_top_ceed)
+
         # Check shutdown bit
+
         spi_shutdown_bit_int = int(resp[7])
         self._process_spi_resp_shutdown(spi_shutdown_bit_int)
 
