@@ -158,8 +158,10 @@ class SPIHandler:
         device_id = resp[5:8]
 
         if device_id == "000":
+            PTLogger.info("Hub reports it's a pi-top v1")
             self._state.set_device_id(DeviceID.pi_top)
         elif device_id == "001":
+            PTLogger.info("Hub reports it's a CEED")
             self._state.set_device_id(DeviceID.pi_top_ceed)
 
     def _parity_of(self, int_type):
@@ -257,7 +259,8 @@ class SPIHandler:
         # we're on, then we must be on a CEED, as if we were on a pi-top v1,
         # we would have identified this via connecting to the battery on i2c.
 
-        if self._state._device_id == DeviceID.unknown:
+        if int(resp) != 0 and self._state._device_id == DeviceID.unknown:
+            PTLogger.info("Received comms from hub - assuming we're on a CEED")
             self._state.set_device_id(DeviceID.pi_top_ceed)
 
         # Check shutdown bit
